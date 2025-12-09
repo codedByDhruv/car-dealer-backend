@@ -1,0 +1,69 @@
+# -------------------------
+# Node.js / Backend .gitignore
+# -------------------------
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build output
+dist/
+build/
+.cache/
+.temp/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Upload folders (keep structure, ignore files)
+uploads/**
+!uploads/
+!uploads/car/
+!uploads/user/
+uploads/car/*
+uploads/user/*
+
+# Allow empty placeholder files
+!uploads/car/.gitkeep
+!uploads/user/.gitkeep
+
+# Coverage
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Optional npm cache directory
+.npm
+
+# TypeScript build artifacts
+*.tsbuildinfo
