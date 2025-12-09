@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const Car = require("../models/Car");
 const mongoose = require("mongoose");
 const { success, error } = require("../utils/response");
@@ -115,6 +117,8 @@ exports.getCar = async (req, res) => {
     return error(res, "❌ Failed to fetch car", err.message);
   }
 };
+
+
 // ==========================
 // Update Car
 // ==========================
@@ -124,68 +128,83 @@ exports.updateCar = async (req, res) => {
 
     if (!isValidId(id)) return error(res, "❌ Invalid Car ID");
 
-    // Find existing car first (we need current images)
+    // 1️⃣ Get existing car
     const car = await Car.findById(id);
     if (!car) return error(res, "⚠️ Car not found", null, 404);
 
-    // Clone body fields (excluding images logic)
+    // 2️⃣ Clone body fields (except internal helpers)
     const updates = { ...req.body };
+    delete updates.deletesImage; // don't save this field in DB
 
-    // Parse stayImages and removeImages from body (they may come as string from form-data)
-    let stayImages = [];
-    if (req.body.stayImages) {
+    // 3️⃣ Parse deletesImage from body
+    // deletesImage: ["/uploads/cars/abc.jpg", "/uploads/cars/xyz.png"]
+    let deletesImage = [];
+    if (req.body.deletesImage) {
       try {
-        // if frontend sends JSON string
-        stayImages = Array.isArray(req.body.stayImages)
-          ? req.body.stayImages
-          : JSON.parse(req.body.stayImages);
+        deletesImage = Array.isArray(req.body.deletesImage)
+          ? req.body.deletesImage
+          : JSON.parse(req.body.deletesImage);
       } catch {
-        // or comma-separated string fallback
-        stayImages = req.body.stayImages
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-      }
-    } else {
-      // if not provided, assume all existing images are kept
-      stayImages = car.images || [];
-    }
-
-    // Optional removeImages (just for later file deletion if needed)
-    let removeImages = [];
-    if (req.body.removeImages) {
-      try {
-        removeImages = Array.isArray(req.body.removeImages)
-          ? req.body.removeImages
-          : JSON.parse(req.body.removeImages);
-      } catch {
-        removeImages = req.body.removeImages
+        deletesImage = req.body.deletesImage
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean);
       }
     }
 
-    // Filter stayImages to ensure they belong to this car (security)
-    const validStayImages = (car.images || []).filter((img) =>
-      stayImages.includes(img)
+    const existingImages = car.images || [];
+
+    // 4️⃣ Which existing images to keep/remove
+    const imagesToRemove = existingImages.filter((img) =>
+      deletesImage.includes(img)
     );
 
-    // Handle NEW uploaded images (with relative paths)
+    const keptImages = existingImages.filter(
+      (img) => !deletesImage.includes(img)
+    );
+
+    // 5️⃣ Handle new uploaded images (multer)
     const newImages = (req.files || []).map((file) => {
-      const fixed = file.path.replace(/\\/g, "/");     // D:\... → D:/...
-      const relative = fixed.split("uploads/")[1];     // cars/xxx.avif
-      return "/uploads/" + relative;                   // /uploads/cars/xxx.avif
+      const fixed = file.path.replace(/\\/g, "/");   // D:\... → D:/...
+      const relative = fixed.split("uploads/")[1];   // cars/xxx.avif
+      return "/uploads/" + relative;                // /uploads/cars/xxx.avif
     });
 
-    // Final images = kept old images + new uploads
-    updates.images = [...validStayImages, ...newImages];
+    // 6️⃣ Final images: kept old + new
+    updates.images = [...keptImages, ...newImages];
 
-    // Now actually update car
+    // 7️⃣ Update DB
     const updatedCar = await Car.findByIdAndUpdate(id, updates, { new: true });
+
+    // 8️⃣ Delete removed files from disk (non-blocking)
+    if (imagesToRemove.length > 0) {
+      const uploadsRoot = path.join(
+        __dirname,
+        "..",
+        "..",
+        process.env.UPLOAD_DIR || "uploads"
+      );
+
+      imagesToRemove.forEach((imgPath) => {
+        try {
+          // imgPath like "/uploads/cars/xxx.jpg"
+          const relative = imgPath.replace("/uploads/", ""); // cars/xxx.jpg
+          const filePath = path.join(uploadsRoot, relative);
+
+          if (fs.existsSync(filePath)) {
+            fs.unlink(filePath, (err) => {
+              if (err) console.error("Failed to delete image:", filePath, err);
+            });
+          }
+        } catch (e) {
+          console.error("Error while deleting image file:", imgPath, e);
+        }
+      });
+    }
 
     return success(res, "🔄 Car updated successfully", updatedCar);
   } catch (err) {
+    console.error("Update Car Error:", err);
     return error(res, "❌ Failed to update car", err.message);
   }
 };
