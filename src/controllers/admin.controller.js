@@ -15,7 +15,7 @@ const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 exports.getStats = async (req, res) => {
   try {
     const [usersCount, carsCount, soldCount] = await Promise.all([
-      User.countDocuments(),
+      User.countDocuments({ role: "user" }),        // exclude admin
       Car.countDocuments({ isDeleted: false }),
       Sold.countDocuments()
     ]);
@@ -36,7 +36,7 @@ exports.getStats = async (req, res) => {
 // ==========================
 exports.listUsers = async (req, res) => {
   try {
-    const users = await User.find()
+    const users = await User.find({ role: "user" }) // exclude admin
       .select("-password")
       .sort({ createdAt: -1 });
 
