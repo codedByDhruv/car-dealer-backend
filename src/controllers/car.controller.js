@@ -47,9 +47,8 @@ exports.addCar = async (req, res) => {
     return error(res, "❌ Failed to add car", err.message);
   }
 };
-
 // ==========================
-// List Cars (Public)
+// List Cars (Public + Admin)
 // ==========================
 exports.listCars = async (req, res) => {
   try {
@@ -59,7 +58,10 @@ exports.listCars = async (req, res) => {
     limit = Number(limit);
 
     const skip = (page - 1) * limit;
-    const filter = { isDeleted: false };
+    const filter = { 
+      isDeleted: false,
+      isSold: false
+    };
 
     // Text Search
     if (q) filter.$text = { $search: q };

@@ -108,12 +108,15 @@ exports.addSold = async (req, res) => {
     if (!isValidId(car))
       return error(res, "❌ Invalid Car ID");
 
-    // Check car exists
     const carExists = await Car.findById(car);
     if (!carExists)
       return error(res, "⚠️ Car not found");
 
+    // Create sold record
     const record = await Sold.create(req.body);
+
+    // Mark car as SOLD
+    await Car.findByIdAndUpdate(car, { isSold: true });
 
     return success(res, "🚗 Sold car entry added successfully", record, 201);
 

@@ -27,9 +27,12 @@ const carSchema = new mongoose.Schema(
     images: [{ type: String }], // Array of file paths
 
     isFeatured: { type: Boolean, default: false },
-    isDeleted: { type: Boolean, default: false }, // Soft delete flag
+    isDeleted: { type: Boolean, default: false },
+
+    // NEW FIELD (Do not show to users once sold)
+    isSold: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Car', carSchema);
+module.exports = mongoose.model("Car", carSchema);
