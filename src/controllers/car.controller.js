@@ -47,6 +47,7 @@ exports.addCar = async (req, res) => {
     return error(res, "❌ Failed to add car", err.message);
   }
 };
+
 // ==========================
 // List Cars (Public + Admin)
 // ==========================

@@ -95,33 +95,123 @@ exports.unblockUser = async (req, res) => {
 };
 
 // ==========================
-// Add Sold Car Entry
+// Add Sold Car Entry (Admin)
 // ==========================
 exports.addSold = async (req, res) => {
   try {
-    const { car, buyerName, price, date } = req.body;
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
 
-    // Validation
-    if (!car || !buyerName || !price || !date)
-      return error(res, "❌ All fields are required: car, buyerName, price, date");
+    const {
+      car,
+      soldPrice,
+      paymentMode,
+      remarks,
+      soldDate,
+      buyer,
+    } = req.body;
 
-    if (!isValidId(car))
+    // ==========================
+    // Basic Validation
+    // ==========================
+    if (!car || !soldPrice || !paymentMode || !buyer) {
+      return error(res, "❌ Missing required fields");
+    }
+
+    if (!isValidId(car)) {
       return error(res, "❌ Invalid Car ID");
+    }
 
     const carExists = await Car.findById(car);
-    if (!carExists)
+    if (!carExists) {
       return error(res, "⚠️ Car not found");
+    }
 
-    // Create sold record
-    const record = await Sold.create(req.body);
+    if (carExists.isSold) {
+      return error(res, "⚠️ This car is already sold");
+    }
 
-    // Mark car as SOLD
+    // ==========================
+    // ID Proof Image (STRICT)
+    // ==========================
+    if (!req.file || !req.file.path) {
+      return error(res, "❌ ID proof image is required");
+    }
+
+    const fixedPath = req.file.path.replace(/\\/g, "/");
+    const relative = fixedPath.split("uploads/")[1];
+
+    if (!relative) {
+      return error(res, "❌ Invalid ID proof image path");
+    }
+
+    // ✅ EXACTLY ONE IMAGE
+    const idProofImages = ["/uploads/" + relative];
+
+    // ==========================
+    // Build Buyer Object
+    // ==========================
+    const finalBuyer = {
+      fullName: buyer.fullName,
+      mobileNumber: buyer.mobileNumber,
+      email: buyer.email,
+      address: {
+        street: buyer.address?.street,
+        city: buyer.address?.city,
+        state: buyer.address?.state,
+        pincode: buyer.address?.pincode,
+      },
+      idProof: {
+        type: buyer.idProof?.type,
+        number: buyer.idProof?.number,
+        images: idProofImages, // 🔥 REQUIRED BY SCHEMA
+      },
+    };
+
+    // ==========================
+    // Final Buyer Validation
+    // ==========================
+    if (
+      !finalBuyer.fullName ||
+      !finalBuyer.mobileNumber ||
+      !finalBuyer.idProof.type ||
+      !finalBuyer.idProof.number ||
+      finalBuyer.idProof.images.length !== 1
+    ) {
+      return error(res, "❌ Buyer details are incomplete");
+    }
+
+    // ==========================
+    // Create Sold Record
+    // ==========================
+    const soldRecord = await Sold.create({
+      car,
+      buyer: finalBuyer,
+      soldPrice,
+      paymentMode,
+      remarks,
+      soldDate,
+    });
+
+    // ==========================
+    // Mark Car as SOLD
+    // ==========================
     await Car.findByIdAndUpdate(car, { isSold: true });
 
-    return success(res, "🚗 Sold car entry added successfully", record, 201);
+    return success(
+      res,
+      "🚗 Sold car entry added successfully",
+      soldRecord,
+      201
+    );
 
   } catch (err) {
-    return error(res, "❌ Failed to add sold car entry", err.message);
+    console.error(err);
+    return error(
+      res,
+      "❌ Failed to add sold car entry",
+      err.message
+    );
   }
 };
 

@@ -2,12 +2,18 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
-// Make directory if missing
+// ==========================
+// Ensure directory exists
+// ==========================
 const ensureDir = (dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 };
 
-// Multer storage factory
+// ==========================
+// Storage factory
+// ==========================
 const storageFactory = (subfolder) =>
   multer.diskStorage({
     destination: (req, file, cb) => {
@@ -29,7 +35,9 @@ const storageFactory = (subfolder) =>
     },
   });
 
-// Allow only images
+// ==========================
+// Image-only filter
+// ==========================
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith('image/')) {
     return cb(new Error('Only image files are allowed!'), false);
@@ -37,10 +45,25 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-// Export upload handlers
+// ==========================
+// Upload handlers
+// ==========================
 const upload = {
-  carImages: multer({ storage: storageFactory('cars'), fileFilter }),
-  userImage: multer({ storage: storageFactory('users'), fileFilter }),
+  carImages: multer({
+    storage: storageFactory('cars'),
+    fileFilter,
+  }),
+
+  userImage: multer({
+    storage: storageFactory('users'),
+    fileFilter,
+  }),
+
+  // ✅ NEW: ID Proof upload (single image)
+  idProof: multer({
+    storage: storageFactory('id-proof'),
+    fileFilter,
+  }),
 };
 
 module.exports = upload;
