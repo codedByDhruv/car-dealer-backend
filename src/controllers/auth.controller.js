@@ -101,12 +101,59 @@ exports.sendResetOtp = async (req, res) => {
 
     await sendMail({
       to: email,
-      subject: "Password Reset OTP",
-      text: `Your OTP is: ${otp}`,
+      subject: "Carvanta Password Reset OTP",
+      text: `Your Carvanta password reset OTP is ${otp}. It is valid for 10 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:30px;">
+          <div style="max-width:520px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden;">
+            
+            <div style="background:#111827; padding:20px; text-align:center;">
+              <h1 style="color:#ffffff; margin:0;">Carvanta</h1>
+              <p style="color:#9ca3af; margin:4px 0 0;">Buy & Sell Cars Easily</p>
+            </div>
+
+            <div style="padding:30px; color:#111827;">
+              <h2 style="margin-top:0;">Password Reset Request</h2>
+
+              <p>
+                We received a request to reset your password.  
+                Use the OTP below to continue:
+              </p>
+
+              <div style="
+                font-size:28px;
+                font-weight:bold;
+                letter-spacing:4px;
+                background:#f3f4f6;
+                padding:15px;
+                text-align:center;
+                border-radius:6px;
+                margin:20px 0;
+              ">
+                ${otp}
+              </div>
+
+              <p style="font-size:14px; color:#6b7280;">
+                This OTP is valid for <strong>10 minutes</strong>.  
+                If you didn’t request a password reset, please ignore this email.
+              </p>
+
+              <p style="margin-top:30px;">
+                Regards,<br/>
+                <strong>Team Carvanta</strong>
+              </p>
+            </div>
+
+            <div style="background:#f9fafb; padding:15px; text-align:center; font-size:12px; color:#6b7280;">
+              © ${new Date().getFullYear()} Carvanta. All rights reserved.
+            </div>
+
+          </div>
+        </div>
+      `,
     });
 
     return success(res, "OTP sent to email");
-
   } catch (err) {
     return error(res, "Failed to send OTP", err.message);
   }
